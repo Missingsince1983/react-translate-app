@@ -1,2 +1,2 @@
 # react-translate-app
-Test react translating app. Used drag and drop, react sortable hoc, requests by graphQl/
+Test react translating app. Used Drag & Drop technology, sort with react-sortable-hoc, requests made by using graphQl
