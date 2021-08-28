@@ -1,13 +1,21 @@
 import React, { FC, useState, useEffect } from "react";
-import { useQuery } from '@apollo/client'
-import { GET_SENTENCE } from "../query/sentence";
-import { SortableContainer, SortableElement, arrayMove } from 'react-sortable-hoc';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import styled from 'styled-components';
+import FlipMove from 'react-flip-move';
+type Props = {
+  wordline: Array<string>,
+  wordtranslate: Array<string>
+};
+
+type WordObject = {
+  item: string,
+  order: number
+}
 
 const TrackWrapper = styled.div`
   display: flex;
   width: 100%;
-  margin: 50px auto;
+  margin: 50px auto 0;
   flex-wrap: wrap;
 `
 const TrackLineWrapper = styled.div`
@@ -44,11 +52,10 @@ const SentenceTrackItem = styled.div`
   box-shadow: 0px 8px 4px -6px rgba(0, 0, 0, 0.25);
   margin: 8px 10px 8px 0;
   cursor: drag;
-`
-
-const SentenceTrackItemTop = styled(SentenceTrackItem)`
-  box-shadow: none;
-  background: transparent;
+  &.dragging-helper-class {
+    box-shadow: 0 4px 10px 0 rgba(0, 0, 0, 0.25);
+    position: absolute;
+  }
 `
 
 const CheckButton = styled.button`
@@ -77,126 +84,29 @@ const CheckButton = styled.button`
   }
 `
 
-const SortableItem = SortableElement(({value}: {value: string}) =>
-  <SentenceTrackItem >
-    {value}
-  </SentenceTrackItem>
-);
+const Error = styled.div`
+  width: 100%;
+  color: red;
+  font-size: 22px;
+  line-height: 30px;
+  color: red;
+  font-weight: bold;
+  text-align: center;
+  margin: 0 0 40px;
+`
 
-const SortableSentenceItem = SortableElement(({value}: {value: string}) =>
-  <SentenceTrackItemTop >
-    {value}
-  </SentenceTrackItemTop>
-);
-
-const SortableList = SortableContainer(({words, sentence, isDragging, setIsHoveringWords, setIsHoveringSentence, isHoveringWords}: {words: string[], sentence: string[], isDragging: boolean, setIsHoveringWords: (value: boolean) => void, setIsHoveringSentence: (value: boolean) => void, isHoveringWords: boolean}) => {
-  return (
-    <TrackLineWrapper>
-      <TrackMainLine onMouseEnter={() => setIsHoveringWords(true)}
-        onMouseLeave={() => setIsHoveringWords(false)}>
-        {words.map((value, index) => (
-          <SortableSentenceItem key={`word-${index}`} index={index} value={value} collection="words"/>
-        ))}
-      </TrackMainLine>
-      <TrackLine onMouseEnter={() => setIsHoveringSentence(true)}
-        onMouseLeave={() => setIsHoveringSentence(false)}>
-        {sentence.map((value, index) => (
-          <SortableItem key={`sentence-${index}`} index={words.length + index} value={value} collection="sentence"/>
-        ))}
-      </TrackLine>
-    </TrackLineWrapper>
-  );
-});
-
-export const TranslateTrack: FC = () => {
-  const { data, loading } = useQuery(GET_SENTENCE)
-  const [words, setWords] = useState<Array<string>>([]);
-  const [sentence, setSentence] = useState<Array<string>>([]);
-
+export const TranslateTrack: FC<Props> = ({ wordline, wordtranslate }) => {
+  const [words, setWords] = useState<Array<WordObject>>([]);
+  const [sentence, setSentence] = useState<Array<WordObject>>([]);
+  const [translate, setTranslate] = useState<Array<WordObject>>([]);
+  const [error, setError] = useState<Boolean>(false);
   useEffect(() => {
-    if (!loading) {
-      setSentence(data.sentence.en.split(' '))
-    }
-  }, [data]);
-
-
-class SortableComponent extends React.Component<{}, {
-  isHoveringWords: boolean,
-  isHoveringSentence: boolean,
-  isDragging: boolean
-}> {
-  constructor(props: {}) {
-    super(props);
-    this.state = {
-      isHoveringSentence: false,
-      isHoveringWords: false,
-      isDragging: false
-    }
-  }
-
-  private onSortEnd = ({oldIndex, newIndex}: {oldIndex: number, newIndex: number}) => {
-    const allItems = words.concat(sentence);
-    const currentItem = allItems[oldIndex];
-
-    if (this.state.isHoveringWords) {
-      if (words.includes(currentItem)) {
-        setWords(arrayMove(words, oldIndex, newIndex))
-      } else {
-        words.splice(newIndex, 0, currentItem);
-        sentence.splice(sentence.indexOf(currentItem), 1);
-        // setWords([...words])
-        // setSentence([...sentence])
-      }
-    }
-    if (this.state.isHoveringSentence) {
-      if (sentence.includes(currentItem)) {
-        setSentence(arrayMove(sentence, oldIndex, newIndex))
-      } else {
-        sentence.splice(newIndex, 0, currentItem);
-        words.splice(sentence.indexOf(currentItem), 1);
-        // setWords([...words])
-        // setSentence([...sentence])
-      }
-    }
-
-    this.setState({
-      isDragging: false
-    })
-  };
-
-  private setIsHoveringWords = (value: boolean) => {
-    this.setState({
-      isHoveringWords: value
-    })
-  }
-
-  private setIsHoveringSentence = (value: boolean) => {
-    this.setState({
-      isHoveringSentence: value
-    })
-  }
-
-  private updateBeforeSortStart = () => {
-    this.setState({
-      isDragging: true
-    })
-  }
-
-  public render() {
-    return <SortableList
-      words={words}
-      sentence={sentence}
-      isDragging={this.state.isDragging}
-      onSortEnd={this.onSortEnd}
-      updateBeforeSortStart={this.updateBeforeSortStart}
-      setIsHoveringWords={this.setIsHoveringWords}
-      setIsHoveringSentence={this.setIsHoveringSentence}
-      isHoveringWords={this.state.isHoveringWords}
-      axis="xy"
-    />;
-  }
-
-}
+    const wordsLine = wordline.map((w, i) => ({
+      item: w,
+      order: i
+    }))
+    setSentence(wordsLine)
+  }, [wordline]);
 
 const playTextToSpeech = (val: string) => {
   const tts = window.speechSynthesis
@@ -205,14 +115,142 @@ const playTextToSpeech = (val: string) => {
   tts.speak(toSpeak)
 }
 
+const arrayToString = (val: Array<WordObject>): string => {
+  let finalStr = ''
+  words.map((word, i) => {
+    finalStr = finalStr + word.item + (i !== words.length - 1 ? ' ' : '')
+  })
+  return finalStr
+}
+
 const checkTranslate = () => {
-  playTextToSpeech('TEST SPEECH')
+  let rightString = ''
+  wordtranslate.map((word, i) => {
+    rightString = rightString + word + (i !== wordtranslate.length - 1 ? ' ' : '')
+  })
+  console.log(arrayToString(words),rightString )
+  if (arrayToString(words) === rightString) {
+    setError(false)
+    playTextToSpeech(rightString)
+  } else {
+    setError(true)
+  }
 }
 
 
+const reorder = (list: Array<WordObject>, startIndex: number, endIndex: number) => {
+    const result = Array.from(list);
+    const [removed] = result.splice(startIndex, 1);
+    result.splice(endIndex, 0, removed);
+    return result;
+}
+
+const move = (source: Array<WordObject>, destination: Array<WordObject>, droppableSource: { index: number, droppableId: string }, droppableDestination: { index: number, droppableId: string }) => {
+    const sourceClone = Array.from(source);
+    const destClone = Array.from(destination);
+    const [removed] = sourceClone.splice(droppableSource.index, 1);
+    destClone.splice(droppableDestination.index, 0, removed);
+
+    const result = {}
+    // result[droppableSource.droppableId] = sourceClone; 
+    // result[droppableDestination.droppableId] = destClone;
+
+    return {sourceClone, destClone};
+};
+
+const getList = (id: string): Array<WordObject> => (id === 'droppable-1' ? words : sentence); //eslint-disable-line
+
+const onDragEnd = (result: any) => {
+    // dropped outside the list
+    const { source, destination } = result;
+
+    if (!destination) {
+      return;
+    }
+
+    if (source.droppableId === destination.droppableId) {
+      if (destination.droppableId === 'droppable-2') {
+        setSentence(reorder(sentence, source.index, destination.index ))
+        setTimeout (() => {
+          setSentence(sentence.sort((a, b) => a.order > b.order ? 1 : -1))
+        }, 500)
+      }
+    } else {
+      const result = move(
+          getList(source.droppableId),
+          getList(destination.droppableId),
+          source,
+          destination
+      );
+      if (source.droppableId === 'droppable-1') {
+        setSentence(result.destClone)
+        setWords(result.sourceClone)
+      } else {
+        setSentence(result.sourceClone)
+        setWords(result.destClone)
+      }
+    }
+}
   return (
     <TrackWrapper>
-      <SortableComponent/>
+      <DragDropContext onDragEnd={onDragEnd}>
+      
+          <Droppable droppableId={'droppable-1'} direction="horizontal" key={'droppable-1'}>
+            {(provided, snapshot) => (
+              <TrackMainLine
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+              >
+                {words.map((item, index) => (
+                  <Draggable key={`word-${index}`} draggableId={`word-${index}`} index={index}>
+                    {(provided, snapshot) => (
+                      <SentenceTrackItem
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                      >
+                        {item.item}
+                      </SentenceTrackItem>
+                    )}
+                  </Draggable>
+                ))}
+              </TrackMainLine>
+            )}
+          </Droppable>
+          <Droppable droppableId={'droppable-2'} direction="horizontal" key={'droppable-2'}>
+            {(provided) => (
+              <TrackLine
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+              >
+
+                {" "}
+                <FlipMove
+                  typeName={null}
+                  >
+                {sentence.map((item, index) => (
+                  <Draggable key={`sentence-${index}`} draggableId={`sentence-${index}`} index={index}>
+                    {(provided) => (
+                      <SentenceTrackItem
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                      >
+                        {item.item}
+                      </SentenceTrackItem>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+                </FlipMove>
+              </TrackLine>
+            )}
+          </Droppable>
+      </DragDropContext>
+      { error === true && (
+        <Error>Something wrong!</Error>
+      )}
+      
       <CheckButton onClick={checkTranslate}>Check</CheckButton>
     </TrackWrapper>
   )

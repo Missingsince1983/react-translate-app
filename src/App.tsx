@@ -7,12 +7,14 @@ const Container = styled.div`
   margin: 0 auto;
   padding: 30px 0;
   flex-wrap: wrap;
+  
 `
 const AppWrapper = styled.div`
   display: flex;
   font-family: Roboto, sans-serif;
   align-items: center;
   background: #e5e5e5;
+  min-height: 100vh;
 
 `
 const App: FC = () => {

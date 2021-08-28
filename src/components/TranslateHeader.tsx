@@ -1,7 +1,9 @@
-import { FC, useEffect, useState } from 'react'
-import { useQuery } from '@apollo/client'
-import { GET_SENTENCE } from "../query/sentence";
+import { FC } from 'react'
 import styled from 'styled-components';
+
+type Props = {
+  wordline: Array<string>,
+};
 
 const Wrapper = styled.div`
   display: flex;
@@ -48,21 +50,13 @@ const PictureTextWord = styled.span`
   cursor: default;
 `
 
-export const TranslateHeader: FC = () => {
-const { data, loading, error } = useQuery(GET_SENTENCE)
-const [sentence, setSentence] = useState<Array<string>>([]);
-  useEffect(() => {
-    if (!loading) {
-      setSentence(data.sentence.en.split(' '))
-    }
-  }, [data]);
-
+export const TranslateHeader: FC<Props> = ({wordline}) => {
   return (
     <Wrapper>
       <Title>Translate this sentence</Title>
       <Picture>
         <PictureText>
-          { sentence.map((item, i) => (
+          { wordline.map((item, i) => (
             <PictureTextWord key={i}>
               { item }
             </PictureTextWord>
